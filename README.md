@@ -12,7 +12,7 @@ What you need to do:
 -Send a json cql
 -receive the result
 
-Possible commands:
+#Possible commands:
 {"action":"execute","cql":"SELECT * FROM system.schema_keyspaces ;"}
 
 {"action":"next"}
@@ -20,11 +20,11 @@ Possible commands:
 {"action":"quit"}
 
 
-Compile the server:
+#Compile the server:
 make
 
 
-Example use
+#Example use
 Start the server:
 ./cassandra-json-proxy -c cloud1.rsquare.nl,cloud2.rsquare.nl -h 127.0.0.1 -p 21121 -w5 -d
 
@@ -39,3 +39,23 @@ telnet localhost 21121
 
 {"action":"quit"}
 
+#To use it in php
+$socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+$connection = socket_connect($socket,'localhost', 21121);
+$ar['action']="execute";
+$ar['cql']="SELECT * FROM system.schema_keyspaces ;";
+socket_write($socket,json_encode($ar));
+if($buffer = socket_read($socket,2048)){
+	$ar=json_decode($buffer,true);
+}
+
+for($i=0;$i<$ar['row_count'];$i++){
+	$s['action']="next";
+	socket_write($socket,json_encode($s));
+	if($buffer = socket_read($socket,2048)){
+		$a=json_decode($buffer,true);
+		vardump($a);
+	}
+}
+
+socket_close($socket);
