@@ -21,6 +21,10 @@ What you need to do:
 
 
 #Compile the server:
+git submodule init
+git submodule update
+apt-get install libjson0-dev
+
 make
 
 
