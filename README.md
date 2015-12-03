@@ -21,15 +21,15 @@ What you need to do:
 
 
 #Prepare the server for compilation
-git submodule init
-git submodule update
-aptitude install libjson0-dev libuv-dev
-mkdir cpp-driver/build
-cd cpp-driver/build
-cmake ..
-make
-make install
-cd ../..
+1. git submodule init
+2. git submodule update
+3. aptitude install libjson0-dev libuv-dev
+4. mkdir cpp-driver/build
+5. cd cpp-driver/build
+6. cmake ..
+7. make
+8. make install
+9. cd ../..
 
 #Compile the server
 make
