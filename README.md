@@ -51,6 +51,7 @@ telnet localhost 21121
 {"action":"quit"}
 
 #To use it in php
+```c
 $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 $connection = socket_connect($socket,'localhost', 21121);
 $ar['action']="execute";
@@ -70,3 +71,4 @@ for($i=0;$i<$ar['row_count'];$i++){
 }
 
 socket_close($socket);
+```
