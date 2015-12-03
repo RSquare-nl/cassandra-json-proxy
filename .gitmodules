@@ -1,0 +1,9 @@
+[submodule "tcpsockets"] 
+	path = tcpsockets 
+	url = https://github.com/vichargrave/tcpsockets.git
+[submodule "threads"] 
+	path = threads 
+	url = https://github.com/vichargrave/threads.git
+[submodule "wqueue"] 
+	path = wqueue 
+	url = https://github.com/vichargrave/wqueue.git
