@@ -20,11 +20,18 @@ What you need to do:
 {"action":"quit"}
 
 
-#Compile the server:
+#Prepare the server for compilation
 git submodule init
 git submodule update
-apt-get install libjson0-dev
+aptitude install libjson0-dev libuv-dev
+mkdir cpp-driver/build
+cd cpp-driver/build
+cmake ..
+make
+make install
+cd ../..
 
+#Compile the server
 make
 
 
