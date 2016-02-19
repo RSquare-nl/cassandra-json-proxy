@@ -17,6 +17,12 @@ What you need to do:
 
 {"action":"next"}
 
+{"action":"execute","cql":"USE somekeyspace ;"}
+
+{"action":"execute","cql":"SELECT * FROM sometable ;"}
+
+{"action":"next"}
+
 {"action":"quit"}
 
 
@@ -28,17 +34,31 @@ What you need to do:
 5. cd cpp-driver/build
 6. cmake ..
 7. make
-8. make install
+8. sudo make install
 9. cd ../..
 
 #Compile the server
-make
+10. make
 
 
 #Example use
 Start the server:
 ./cassandra-json-proxy -c cloud1.rsquare.nl,cloud2.rsquare.nl -h 127.0.0.1 -p 21121 -w5 -d
 
+This will start the proxy with 5 childs listening to port 21121 on localhost in daemon-mode
+
+If you get an error like:
+error while loading shared libraries: libcassandra.so.2: cannot open shared object file: No such file or directory
+
+Edit the file and add:
+1. sudo vi /etc/ld.so.conf
+
+/usr/local/lib
+
+2. sudo ldconfig
+
+
+#Connections
 connect to the port:
 commandline:
 telnet localhost 21121
