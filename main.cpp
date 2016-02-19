@@ -261,7 +261,7 @@ class ConnectionHandler : public Thread
 														case CASS_VALUE_TYPE_VARCHAR:
 														case CASS_VALUE_TYPE_TEXT:
 															cass_value_get_string(cass_row_get_column(row,columnNr),&value.pstr,&valueLength);
-															sprintf(buffer,"%s",value.pstr);
+															snprintf(buffer,valueLength+1,"%s",value.pstr);
 															break;
 														case CASS_VALUE_TYPE_COUNTER:
 														case CASS_VALUE_TYPE_BIGINT:
