@@ -309,6 +309,7 @@ class ConnectionHandler : public Thread
 						default:
 									sprintf(buffer,"\nUnknown action");
 									syslog(LOG_INFO, buffer);
+									action=99;//Quit connection
 									break;
 					}
 
