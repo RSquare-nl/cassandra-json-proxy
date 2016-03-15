@@ -36,33 +36,35 @@ What you need to do:
 7. make
 8. sudo make install
 9. cd ../..
-
-#Compile the server
 10. make
 
+The last make will Compile the proxy server
 
 #Example use
 Start the server:
 ./cassandra-json-proxy -c cloud1.rsquare.nl,cloud2.rsquare.nl -h 127.0.0.1 -p 21121 -w5 -d
 
-This will start the proxy with 5 childs listening to port 21121 on localhost in daemon-mode
+This will start the proxy with 5 childs listening to port 21121 on localhost in daemon-mode and connecting to the cloud servers cloud1.rsquare.nl and cloud2.rsquare.nl
 
 If you get an error like:
-error while loading shared libraries: libcassandra.so.2: cannot open shared object file: No such file or directory
+"error while loading shared libraries: libcassandra.so.2: cannot open shared object file: No such file or directory"
 
-Edit the file and add:
-1. sudo vi /etc/ld.so.conf
+Edit the file and add in the file :
+sudo vi /etc/ld.so.conf
 
 /usr/local/lib
 
-2. sudo ldconfig
+Run ldconfig to update your system
+
+sudo ldconfig
 
 
 #Connections
 connect to the port:
 commandline:
 telnet localhost 21121
- {"action":"execute","cql":"SELECT * FROM system.schema_keyspaces ;"}
+
+{"action":"execute","cql":"SELECT * FROM system.schema_keyspaces ;"}
  
 {"action":"next"}
 
