@@ -31,12 +31,14 @@ What you need to do:
 2. git submodule update
 3. aptitude install libjson0-dev libuv-dev
 4. mkdir cpp-driver/build
-5. cd cpp-driver/build
-6. cmake ..
-7. make
-8. sudo make install
-9. cd ../..
-10. make
+5. cd cpp-driver
+6. git checkout master
+7. cd cpp-driver/build
+8. cmake ..
+9. make
+10. sudo make install
+11. cd ../..
+12. make
 
 The last make will Compile the proxy server
 
@@ -74,23 +76,23 @@ telnet localhost 21121
 
 #To use it in php
 ```c
-$socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-$connection = socket_connect($socket,'localhost', 21121);
-$ar['action']="execute";
-$ar['cql']="SELECT * FROM system.schema_keyspaces ;";
-socket_write($socket,json_encode($ar));
-if($buffer = socket_read($socket,2048)){
-	$ar=json_decode($buffer,true);
-}
+require_once 'cassandraproxy.lib.php';
+use RSquare\Cassandra;
 
-for($i=0;$i<$ar['row_count'];$i++){
-	$s['action']="next";
-	socket_write($socket,json_encode($s));
-	if($buffer = socket_read($socket,2048)){
-		$a=json_decode($buffer,true);
-		vardump($a);
-	}
-}
+$cassandraProxy= new RSquare\Cassandra\Proxy('127.0.0.1',21121,'KEYSPACE');
+$connection=$cassandraProxy->connectProxy();
 
-socket_close($socket);
+$value=$cassandraProxy->escape($value);
+$cql="SELECT * FROM system.schema_keyspaces ;";
+$cassandraProxy->executeCQL($cql);
+if (null === $cassandraProxy->getError()) {
+    $ret['rows']=$cassandraProxy->getRowCount();
+    while ($cassandraProxy->next()) {
+	    $parameters[$cassandraProxy->get('columnfamily_name')]=$cassandraProxy->get('columnfamily_name');
+    }
+}
+//Do some code
+
+//Closing the connetion
+if(isset($cassandraProxy)) $cassandraProxy=null;
 ```

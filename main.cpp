@@ -40,11 +40,17 @@
 #include "tcpacceptor.h"
 
 #define NUM_CONCURRENT_REQUESTS 1000
+#define BUFFERSIZE 100000
 
 #define ACTION_SQL 1
 #define ACTION_QUIT 2
 
 #define DAEMON_NAME "cassandra-proxy"
+
+union lengthSplit{
+	   unsigned long length;
+		unsigned char bytes[4];
+};
 
 int isDaemon;
 
@@ -99,7 +105,6 @@ void print_usage() {
 	printf("\n");
 }
 
-
 class WorkItem
 {
 	TCPStream* m_stream;
@@ -127,10 +132,11 @@ class ConnectionHandler : public Thread
 		size_t columnNr=0;
 		const char *name;//,*value;
 		size_t nameLength,valueLength;
-		char buffer[10000];
+		char buffer[BUFFERSIZE];
 		Basic value;
 		enum json_type type;
 		//char *key; struct json_object *val;
+		lengthSplit sendlength;
 
 
 		for (int i = 0;; i++) {
@@ -165,13 +171,11 @@ class ConnectionHandler : public Thread
 				if(!isDaemon) printf("%s",buffer);
 				TCPStream* stream = item->getStream();
 
-				// Echo messages back the client until the connection is 
-				// closed
-				char input[10000];
+				char input[BUFFERSIZE];
 				int len;
 				while ((len = stream->receive(input, sizeof(input)-1)) > 0 ){
 					action=0;	
-					json_object * inputjobj = json_tokener_parse(input);
+					json_object *inputjobj = json_tokener_parse(input);
 					if(inputjobj!=NULL){
 						json_object_object_foreach(inputjobj, key, val) { //Passing through every array element
 							if(strcasecmp(key,"cql")==0){
@@ -221,19 +225,20 @@ class ConnectionHandler : public Thread
 											json_object_object_add(jobj,"row_count", json_object_new_int((int)cass_result_row_count(result)));
 
 											input[len] = 0;
-											message = new char[strlen(json_object_to_json_string(jobj))+1];
-											bzero(message,strlen(json_object_to_json_string(jobj))+1);
+											message = new char[strlen(json_object_to_json_string(jobj))+1+4];
+											bzero(message,strlen(json_object_to_json_string(jobj))+1+4);//1 for terminating, 4 for adding length
 											//strcpy(message,json_object_to_json_string(jobj));
-											strncpy(message,json_object_to_json_string(jobj),strlen(json_object_to_json_string(jobj)));
+											//strncpy(message,json_object_to_json_string(jobj),strlen(json_object_to_json_string(jobj)));
+											sendlength.length=strlen(json_object_to_json_string(jobj))+4;
+											message[0]=sendlength.bytes[3];
+											message[1]=sendlength.bytes[2];
+											message[2]=sendlength.bytes[1];
+											message[3]=sendlength.bytes[0];//copy message length
+											strncpy(&message[4],json_object_to_json_string(jobj),strlen(json_object_to_json_string(jobj)));
 
-											stream->send(message, strlen(message));
-											//stream->send(message, sizeof(message));
-											//buffer[0]='\n';
-											//buffer[1]=0;
-											//stream->send(buffer, strlen(buffer));
+											stream->send(message, sendlength.length);
 
-											if(!isDaemon) printf("\nsend:%s",message);
-											if(!isDaemon) printf("\nsend:%s",json_object_to_json_string(jobj));
+											if(!isDaemon) printf("\nsend:%lX (0x%X 0x%X 0x%X 0x%X)%s",sendlength.length,(char)message[0],(char)message[1],(char)message[2],(char)message[3], &message[4]);
 											if(!isDaemon) printf("\nthread %lu, input '%s' back to the client", (long unsigned int)self(), input);
 											delete[] message;
 										}
@@ -244,13 +249,12 @@ class ConnectionHandler : public Thread
 									break;
 						case 2 : { //next
 										json_object *jobj = json_object_new_object();
-										json_object *jarray = json_object_new_array();
+										json_object *record = json_object_new_object();
 										rc = cass_future_error_code(future);
 										if (rc != CASS_OK) {
 											print_error(future);
 										}else{
 											if (cass_iterator_next(iterator)) {
-												json_object *record = json_object_new_object();
 												const CassRow* row = cass_iterator_get_row(iterator);
 												for(columnNr=0;columnNr<cass_result_column_count(result);columnNr++){
 
@@ -286,23 +290,25 @@ class ConnectionHandler : public Thread
 													json_object_object_add(record,name, json_object_new_string(buffer));
 
 												}
-												json_object_array_add(jarray, record);
 											}
-											json_object_object_add(jobj,"result", jarray);
+											json_object_object_add(jobj,"result", record);
 
 											input[len] = 0;
-											message = new char[strlen(json_object_to_json_string(jobj))+1];
-											bzero(message,strlen(json_object_to_json_string(jobj))+1);
-											strncpy(message,json_object_to_json_string(jobj),strlen(json_object_to_json_string(jobj)));
-											stream->send(message, strlen(message));
-											//stream->send(json_object_to_json_string(jobj), strlen(json_object_to_json_string(jobj)));
+											message = new char[strlen(json_object_to_json_string(jobj))+1+4];
+											bzero(message,strlen(json_object_to_json_string(jobj))+1+4);//1 for terminating, 4 for adding length
+											sendlength.length=strlen(json_object_to_json_string(jobj))+4;
+											message[0]=sendlength.bytes[3];
+											message[1]=sendlength.bytes[2];
+											message[2]=sendlength.bytes[1];
+											message[3]=sendlength.bytes[0];//copy message length
+											strncpy(&message[4],json_object_to_json_string(jobj),strlen(json_object_to_json_string(jobj)));
+											stream->send(message, sendlength.length);
 
-											if(!isDaemon) printf("\nsend:%s",message);
-											if(!isDaemon) printf("\nsend:%s",json_object_to_json_string(jobj));
+											if(!isDaemon) printf("\nsend:%lX %s",sendlength.length, &message[4]);
 											if(!isDaemon) printf("\nthread %lu, input '%s' back to the client", (long unsigned int)self(), input);
 											delete[] message;
 										}
-										json_object_put(jarray);
+										json_object_put(record);
 										json_object_put(jobj);
 									}
 									break;
@@ -316,7 +322,8 @@ class ConnectionHandler : public Thread
 					if(action==99){ //quit
 						break;
 					}
-					json_object_put(inputjobj);
+					if(inputjobj!=NULL)
+						json_object_put(inputjobj);
 				}
 				if(future!=NULL)
 					cass_future_free(future);
@@ -356,6 +363,7 @@ int main(int    argc, char** argv) {
 	char buffer[100];
 
 	isDaemon=0;
+
 
 	while ((option = getopt (argc, argv, "dh:w:p:c:")) != -1){
 		switch (option)
